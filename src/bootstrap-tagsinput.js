@@ -310,21 +310,31 @@
               process(texts);
             }
 
+            function processData(data) {
+              if (!data)
+                return;
+
+              if ($.isFunction(data.success)) {
+                // support for Angular callbacks
+                data.success(processItems);
+              } else if ($.isFunction(data.then)) {
+                // support for Angular promises
+                data.then(processItems);
+              } else {
+                // support for functions and jquery promises
+                $.when(data)
+                 .then(processItems);
+              }
+            }
+
             this.map = {};
             var map = this.map,
-                data = typeahead.source(query);
+                // bloodhound (typeahead.js since 0.11) needs two callback functions (sync and async) for local and remote data processing
+                // see https://github.com/twitter/typeahead.js/blob/master/src/bloodhound/bloodhound.js#L132
+                data = typeahead.source(query, processData, processData);
 
-            if ($.isFunction(data.success)) {
-              // support for Angular callbacks
-              data.success(processItems);
-            } else if ($.isFunction(data.then)) {
-              // support for Angular promises
-              data.then(processItems);
-            } else {
-              // support for functions and jquery promises
-              $.when(data)
-               .then(processItems);
-            }
+            // data is directly returned by source function
+            processData(data);
           },
           updater: function (text) {
             self.add(this.map[text]);
